@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flappy Bird</title>
+  <style>
+    body {
+      margin: 0;
+      background: #70c5ce;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      border: 2px solid #2f3640;
+      background: #dff9fb;
+    }
+    #scoreboard {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #2f3640;
+      font-size: 24px;
+      font-family: sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div id="scoreboard">Score: 0</div>
+  <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+  <script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  const scoreboard = document.getElementById("scoreboard");
+
+  const birdImg = new Image();
+  const bgImg = new Image();
+  const fgImg = new Image();
+  const pipeNorth = new Image();
+  const pipeSouth = new Image();
+
+  birdImg.src = "https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/yellowbird-midflap.png";
+  bgImg.src = "https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/background-day.png";
+  fgImg.src = "https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/base.png";
+  pipeNorth.src = "https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/pipe-green.png";
+  pipeSouth.src = "https://raw.githubusercontent.com/samuelcust/flappy-bird-assets/master/sprites/pipe-green.png";
+
+  let bird = { x: 50, y: 150, width: 34, height: 24, gravity: 1.2, lift: -18, velocity: 0 };
+  let pipes = [];
+  let gap = 120;
+  let frame = 0;
+  let score = 0;
+  let gameOver = false;
+
+  // Flap function
+  function flap() {
+    if (!gameOver) {
+      bird.velocity = bird.lift;
+    } else {
+      location.reload();
+    }
+  }
+
+  // Keyboard and touch input
+  document.addEventListener("keydown", flap);
+  document.addEventListener("touchstart", flap);
+
+  function drawBird() {
+    ctx.drawImage(birdImg, bird.x, bird.y);
+  }
+
+  function drawPipes() {
+    pipes.forEach(pipe => {
+      ctx.drawImage(pipeNorth, pipe.x, pipe.y);
+      ctx.drawImage(pipeSouth, pipe.x, pipe.y + pipeNorth.height + gap);
+    });
+  }
+
+  function updatePipes() {
+    if (frame % 90 === 0) {
+      let topY = Math.floor(Math.random() * -120) - 50;
+      pipes.push({ x: canvas.width, y: topY, passed: false });
+    }
+
+    pipes.forEach(pipe => {
+      pipe.x -= 2;
+
+      if (!pipe.passed && pipe.x + pipeNorth.width < bird.x) {
+        pipe.passed = true;
+        score++;
+        scoreboard.textContent = `Score: ${score}`;
+      }
+
+      if (
+        bird.x + bird.width > pipe.x &&
+        bird.x < pipe.x + pipeNorth.width &&
+        (bird.y < pipe.y + pipeNorth.height || bird.y + bird.height > pipe.y + pipeNorth.height + gap)
+      ) {
+        endGame();
+      }
+    });
+
+    pipes = pipes.filter(pipe => pipe.x + pipeNorth.width > 0);
+  }
+
+  function updateBird() {
+    bird.velocity += bird.gravity;
+    bird.y += bird.velocity;
+
+    if (bird.y + bird.height >= canvas.height - fgImg.height || bird.y < 0) {
+      endGame();
+    }
+  }
+
+  function endGame() {
+    gameOver = true;
+    scoreboard.textContent += " | Game Over! Tap or press a key to restart.";
+  }
+
+  function loop() {
+    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+    updatePipes();
+    updateBird();
+    drawPipes();
+    drawBird();
+    ctx.drawImage(fgImg, 0, canvas.height - fgImg.height);
+
+    if (!gameOver) {
+      frame++;
+      requestAnimationFrame(loop);
+    }
+  }
+
+  // Load images before starting
+  let images = [birdImg, bgImg, fgImg, pipeNorth, pipeSouth];
+  let loaded = 0;
+  images.forEach(img => {
+    img.onload = () => {
+      loaded++;
+      if (loaded === images.length) loop();
+    };
+  });
+</script>
+
+</body>
+</html>
